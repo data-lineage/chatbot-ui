@@ -9,6 +9,7 @@ create .env.local in the root of the directory and these variables
 ```
 NEXT_PUBLIC_API_BASE_URL= your_backend_server_url
 NEXT_PUBLIC_ACCESS_TOKEN= your_token_to_access_anansi
+SARVAM_API_KEY= your_sarvam_api_key
 ```
 
 First, run the development server:
