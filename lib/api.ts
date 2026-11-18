@@ -82,3 +82,29 @@ export async function checkHealth(): Promise<boolean> {
     return false;
   }
 }
+
+export async function transcribeAudio(
+  audioBlob: Blob,
+  languageCode = 'unknown'
+): Promise<{ transcript: string; language_code?: string; request_id?: string }> {
+  const cleanType = audioBlob.type.split(';')[0].trim() || 'audio/webm';
+  const cleanBlob = new Blob([audioBlob], { type: cleanType });
+
+  const form = new FormData();
+  form.append('file', cleanBlob, 'recording.webm');
+  form.append('language_code', languageCode);
+  form.append('model', 'saaras:v4');
+  form.append('mode', 'transcribe');
+
+  const res = await fetch('/api/transcribe', {
+    method: 'POST',
+    body: form,
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to transcribe audio.');
+  }
+
+  return data;
+}
