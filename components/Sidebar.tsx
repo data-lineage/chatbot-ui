@@ -30,7 +30,7 @@ export default function Sidebar() {
 
   const navLinks = [
     {
-      href: '/oracle',
+      href: '/assistant',
       label: 'AI Assistant',
       description: 'Ask questions & search plants',
       icon: <Sparkles size={16} className="text-emerald-400" />,

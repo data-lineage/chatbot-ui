@@ -1,3 +1,5 @@
+import type { SchemaData } from './types';
+
 const getBase = () => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 const authHeaders = () => {
@@ -107,4 +109,39 @@ export async function transcribeAudio(
   }
 
   return data;
+}
+
+export async function fetchSchema(
+  catalogName?: string,
+  forceRefresh = false
+): Promise<SchemaData> {
+  const params = new URLSearchParams();
+  if (catalogName) params.set('catalog_name', catalogName);
+  if (forceRefresh) params.set('force_refresh', 'true');
+
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${getBase()}/schema${query}`, {
+    headers: authHeaders(),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed?.detail) {
+        throw new Error(
+          typeof parsed.detail === 'string'
+            ? parsed.detail
+            : JSON.stringify(parsed.detail)
+        );
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message !== text) {
+        throw err;
+      }
+    }
+    throw new Error(`Schema fetch failed: ${res.status} ${text}`);
+  }
+
+  return res.json();
 }

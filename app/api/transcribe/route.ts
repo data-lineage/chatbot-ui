@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const ALLOWED_MIME_TYPES = new Set([
   'audio/mpeg',
   'audio/mp3',

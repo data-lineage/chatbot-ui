@@ -1,87 +1,52 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
+import { fetchSchema } from '@/lib/api';
+import type { SchemaData } from '@/lib/types';
+import NodeCard from '@/components/NodeCard';
+import RelationshipTable from '@/components/RelationshipTable';
+import FulltextIndexTable from '@/components/FulltextIndexTable';
+import SchemaLoadingSkeleton from '@/components/SchemaLoadingSkeleton';
+import SchemaError from '@/components/SchemaError';
 import {
+  RotateCcw,
   Network,
   Database,
-  Leaf,
   Layers,
-  FlaskConical,
-  Activity,
-  Target,
-  FileText,
-  ShieldCheck,
+  Search,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
-
-const NODE_DEFINITIONS = [
-  {
-    label: 'Plant_details',
-    icon: <Leaf size={16} className="text-emerald-400" />,
-    color: 'from-emerald-500/10 to-teal-500/5 border-emerald-500/30 text-emerald-300',
-    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-    description: 'Core botanical taxonomic record (botanical name, family, vernacular names, habitat).',
-    example: 'Ocimum tenuiflorum (Tulsi), Withania somnifera (Ashwagandha)',
-  },
-  {
-    label: 'Plant_part',
-    icon: <Layers size={16} className="text-lime-400" />,
-    color: 'from-lime-500/10 to-emerald-500/5 border-lime-500/30 text-lime-300',
-    badge: 'bg-lime-500/10 text-lime-400 border-lime-500/30',
-    description: 'Specific anatomical part of the plant used in medicinal formulations.',
-    example: 'Leaves, Root, Bark, Seeds, Whole Plant',
-  },
-  {
-    label: 'Phytochemicals',
-    icon: <FlaskConical size={16} className="text-cyan-400" />,
-    color: 'from-cyan-500/10 to-blue-500/5 border-cyan-500/30 text-cyan-300',
-    badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-    description: 'Active biochemical molecules and secondary metabolites identified within plant parts.',
-    example: 'Eugenol, Withaferin A, Curcumin, Ursolic Acid',
-  },
-  {
-    label: 'Bioactivity',
-    icon: <Activity size={16} className="text-amber-400" />,
-    color: 'from-amber-500/10 to-orange-500/5 border-amber-500/30 text-amber-300',
-    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-    description: 'Experimentally assayed pharmacological or biological effects (IC50, inhibition values).',
-    example: 'Anti-inflammatory, Antioxidant, Immunomodulatory, Antimicrobial',
-  },
-  {
-    label: 'Protein_Target',
-    icon: <Target size={16} className="text-violet-400" />,
-    color: 'from-violet-500/10 to-purple-500/5 border-violet-500/30 text-violet-300',
-    badge: 'bg-violet-500/10 text-violet-400 border-violet-500/30',
-    description: 'Human macromolecular protein or enzyme targeted by active phytochemicals.',
-    example: 'COX-2 (PTGS2), NF-kB, Acetylcholinesterase (AChE)',
-  },
-  {
-    label: 'Therapeutic_Uses',
-    icon: <ShieldCheck size={16} className="text-rose-400" />,
-    color: 'from-rose-500/10 to-pink-500/5 border-rose-500/30 text-rose-300',
-    badge: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-    description: 'Classical Ayurvedic indications and clinical therapeutic applications.',
-    example: 'Kasa (Cough), Shwasa (Asthma), Jvara (Fever), Stress relief',
-  },
-  {
-    label: 'Document',
-    icon: <FileText size={16} className="text-neutral-400" />,
-    color: 'from-neutral-500/10 to-neutral-500/5 border-neutral-500/30 text-neutral-300',
-    badge: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/30',
-    description: 'Scientific publication, clinical trial, or pharmacological literature source.',
-    example: 'PubMed research citations, monograph chapters, pharmacology papers',
-  },
-];
-
-const RELATIONSHIPS = [
-  { type: 'HAS_PART', from: 'Plant_details', to: 'Plant_part', desc: 'Links a botanical taxon to its medicinal parts' },
-  { type: 'USED_FOR', from: 'Plant_details', to: 'Therapeutic_Uses', desc: 'Direct therapeutic indication from classical Ayurveda' },
-  { type: 'CONTAINS', from: 'Plant_part', to: 'Phytochemicals', desc: 'Biochemical isolation of compounds from specific parts' },
-  { type: 'HAS_BIOACTIVITY', from: 'Phytochemicals', to: 'Bioactivity', desc: 'Biological action demonstrated by a compound' },
-  { type: 'MEASURED_ON', from: 'Bioactivity', to: 'Protein_Target', desc: 'Specific receptor/enzyme target for bioactivity' },
-  { type: 'REPORTED_IN', from: 'Bioactivity', to: 'Document', desc: 'Scientific citation supporting the bioactivity' },
-];
+import { toast } from 'sonner';
 
 export default function SchemaPage() {
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery<SchemaData>({
+    queryKey: ['schema'],
+    queryFn: () => fetchSchema(),
+    staleTime: 60 * 60 * 1000, // 1 hour — matches backend TTL
+    retry: 1,
+  });
+
+  async function handleForceRefresh() {
+    const toastId = toast.loading('Fetching fresh schema from knowledge graph…');
+    try {
+      // Force refresh bypasses the server-side TTL cache
+      await fetchSchema(undefined, true);
+      await refetch();
+      toast.success('Schema refreshed successfully!', { id: toastId });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to refresh schema';
+      toast.error(message, { id: toastId });
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-[#0b0f14] text-neutral-200">
       {/* Top Application Bar */}
@@ -89,101 +54,124 @@ export default function SchemaPage() {
         <div className="flex items-center gap-2 text-xs text-neutral-400">
           <span>Knowledge Graph</span>
           <ChevronRight size={13} className="text-neutral-600" />
-          <span className="text-white font-medium">Schema</span>
+          <span className="text-white font-medium">Live Schema</span>
         </div>
 
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
-          <Database size={12} />
-          <span>Graph Ontology</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleForceRefresh}
+            disabled={isFetching || isLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] hover:border-emerald-500/40 bg-white/[0.04] hover:bg-emerald-500/[0.08] text-xs font-medium text-neutral-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
+          >
+            {isFetching ? (
+              <Loader2 size={13} className="animate-spin text-emerald-400" />
+            ) : (
+              <RotateCcw size={13} className="text-emerald-400" />
+            )}
+            <span>{isFetching ? 'Refreshing…' : 'Force Refresh'}</span>
+          </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 flex flex-col gap-10 max-w-5xl w-full mx-auto">
-        {/* Title & Overview */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-semibold uppercase tracking-wider">
-            <Network size={14} />
-            Ontology & Data Model
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Knowledge Graph Architecture
-          </h1>
-          <p className="text-sm text-neutral-400 max-w-2xl leading-relaxed">
-            The AI Assistant queries a connected property graph containing medicinal plants, their phytochemical constituents, molecular protein targets, and clinical therapeutic uses.
-          </p>
-        </div>
+      {/* Main Scrollable Area */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8">
+        {isLoading && <SchemaLoadingSkeleton />}
 
-        {/* Nodes Grid */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-300">
-              Graph Node Types (Entities)
-            </h2>
-            <span className="text-xs font-mono text-neutral-500">7 Primary Entity Labels</span>
-          </div>
+        {isError && (
+          <SchemaError
+            message={(error as Error)?.message || 'An error occurred while fetching schema.'}
+            onRetry={() => refetch()}
+          />
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {NODE_DEFINITIONS.map((node) => (
-              <div
-                key={node.label}
-                className={`p-4 rounded-2xl bg-gradient-to-br ${node.color} border shadow-xs flex flex-col justify-between gap-3`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08]">
-                    {node.icon}
-                  </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${node.badge}`}>
-                    {node.label}
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <p className="text-xs text-neutral-300 leading-relaxed">
-                    {node.description}
-                  </p>
-                  <p className="text-[11px] text-neutral-400 font-mono mt-1">
-                    Ex: {node.example}
-                  </p>
-                </div>
+        {data && (
+          <div className="flex flex-col gap-10 max-w-5xl w-full mx-auto">
+            {/* Header info */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-semibold uppercase tracking-wider">
+                <Network size={14} />
+                Live Graph Schema
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Relationships Flow Visualization */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-300">
-              Graph Relationships (Edges)
-            </h2>
-            <span className="text-xs font-mono text-neutral-500">6 Directed Relations</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {RELATIONSHIPS.map((rel) => (
-              <div
-                key={rel.type}
-                className="p-4 rounded-xl bg-[#161b22] border border-white/[0.08] flex flex-col gap-2 hover:border-emerald-500/40 transition"
-              >
-                <div className="flex items-center gap-2 text-xs flex-wrap font-mono">
-                  <span className="px-2 py-0.5 rounded-md bg-white/[0.06] text-neutral-200 font-medium">
-                    ({rel.from})
-                  </span>
-                  <div className="flex items-center text-emerald-400 font-semibold gap-1">
-                    <span className="text-[11px]">-[{rel.type}]-&gt;</span>
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                Knowledge Graph Schema
+              </h1>
+              <p className="text-sm text-neutral-400 leading-relaxed">
+                Live schema from knowledge graph · {data.node_labels.length} node types ·{' '}
+                {data.relationships.length} relationships
+              </p>
+              {data.catalogs && data.catalogs.length > 0 && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[11px] text-neutral-500">Catalogs:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {data.catalogs.map((cat, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-white/[0.04] border border-white/[0.08] text-neutral-300"
+                      >
+                        {cat}
+                      </span>
+                    ))}
                   </div>
-                  <span className="px-2 py-0.5 rounded-md bg-white/[0.06] text-neutral-200 font-medium">
-                    ({rel.to})
+                </div>
+              )}
+            </div>
+
+            {/* Section 1: Node Labels */}
+            <section className="flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-300 flex items-center gap-2">
+                  <Database size={13} className="text-emerald-400" />
+                  Node Labels ({data.node_labels.length})
+                </h2>
+                <span className="text-xs font-mono text-neutral-500">
+                  Entity types & properties
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.node_labels.map((label) => (
+                  <NodeCard
+                    key={label}
+                    label={label}
+                    properties={data.properties[label] ?? []}
+                  />
+                ))}
+              </div>
+            </section>
+
+            {/* Section 2: Relationships */}
+            <section className="flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-300 flex items-center gap-2">
+                  <Layers size={13} className="text-emerald-400" />
+                  Relationships ({data.relationships.length})
+                </h2>
+                <span className="text-xs font-mono text-neutral-500">
+                  Directed graph edges
+                </span>
+              </div>
+
+              <RelationshipTable relationships={data.relationships} />
+            </section>
+
+            {/* Section 3: Fulltext Indexes */}
+            {data.fulltext_indexes && data.fulltext_indexes.length > 0 && (
+              <section className="flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-300 flex items-center gap-2">
+                    <Search size={13} className="text-cyan-400" />
+                    Fulltext Indexes ({data.fulltext_indexes.length})
+                  </h2>
+                  <span className="text-xs font-mono text-neutral-500">
+                    Fast entity resolution indexes
                   </span>
                 </div>
-                <p className="text-xs text-neutral-400 mt-1">
-                  {rel.desc}
-                </p>
-              </div>
-            ))}
+
+                <FulltextIndexTable indexes={data.fulltext_indexes} />
+              </section>
+            )}
           </div>
-        </section>
+        )}
       </div>
     </div>
   );

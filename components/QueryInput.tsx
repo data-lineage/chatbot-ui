@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 interface Props {
-  onPollingStart: (queryText: string) => void;
+  onPollingStart: (queryText: string, catalogName?: string) => void;
   isPolling: boolean;
   externalQuery?: string;
 }
@@ -87,11 +87,12 @@ export default function QueryInput({ onPollingStart, isPolling, externalQuery }:
     const submittedQuery = query.trim();
     setIsSubmitting(true);
     try {
+      const activeCatalog = catalogName.trim() || undefined;
       await startQuery({
         query: submittedQuery,
-        catalog_name: catalogName.trim() || undefined,
+        catalog_name: activeCatalog,
       });
-      onPollingStart(submittedQuery);
+      onPollingStart(submittedQuery, activeCatalog);
       setQuery('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
