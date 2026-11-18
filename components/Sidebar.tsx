@@ -3,26 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { checkHealth } from '@/lib/api';
 import {
   Sparkles,
   Network,
   Menu,
   X,
-  Activity,
   ChevronRight,
 } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [healthy, setHealthy] = useState<boolean | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    checkHealth().then(setHealthy);
-    const id = setInterval(() => checkHealth().then(setHealthy), 30_000);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -102,10 +93,10 @@ export default function Sidebar() {
                   {icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium tracking-tight truncate">
+                  <div className="text-xs font-semibold leading-tight text-neutral-200 group-hover:text-white">
                     {label}
                   </div>
-                  <div className="text-[10px] text-neutral-400 truncate">
+                  <div className="text-[11px] text-neutral-400 truncate mt-0.5">
                     {description}
                   </div>
                 </div>
@@ -115,34 +106,6 @@ export default function Sidebar() {
               </Link>
             );
           })}
-        </div>
-      </div>
-
-      {/* Footer Backend Status Pill */}
-      <div className="p-4 border-t border-white/[0.08]">
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="relative flex h-2 w-2 shrink-0">
-              {healthy ? (
-                <>
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)]" />
-                </>
-              ) : healthy === false ? (
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.9)]" />
-              ) : (
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-neutral-400 animate-pulse" />
-              )}
-            </span>
-            <span className="text-[11px] font-medium text-neutral-300 truncate">
-              {healthy === null
-                ? 'Connecting…'
-                : healthy
-                ? 'Online'
-                : 'Offline'}
-            </span>
-          </div>
-          <Activity size={13} className="text-neutral-400 shrink-0" />
         </div>
       </div>
     </div>
@@ -158,34 +121,30 @@ export default function Sidebar() {
         </div>
         <button
           onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-lg text-neutral-300 hover:text-white hover:bg-white/[0.06]"
-          aria-label="Open sidebar"
+          className="p-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/[0.06] border border-white/[0.08]"
+          aria-label="Open navigation"
         >
           <Menu size={18} />
         </button>
       </div>
 
-      {/* Mobile Drawer Backdrop */}
+      {/* Desktop Sidebar (Permanent) */}
+      <aside className="hidden md:flex w-64 h-screen shrink-0 flex-col">
+        {content}
+      </aside>
+
+      {/* Mobile Drawer */}
       {mobileOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity"
-          onClick={() => setMobileOpen(false)}
-        />
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="relative w-64 max-w-[80vw] h-full shadow-2xl z-10">
+            {content}
+          </div>
+        </div>
       )}
-
-      {/* Mobile Drawer Panel */}
-      <aside
-        className={`md:hidden fixed top-0 bottom-0 left-0 z-50 w-72 shadow-2xl transform transition-transform duration-200 ease-in-out ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        {content}
-      </aside>
-
-      {/* Desktop Persistent Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 shrink-0 h-screen">
-        {content}
-      </aside>
     </>
   );
 }

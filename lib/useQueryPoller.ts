@@ -10,7 +10,7 @@ export function useQueryPoller(enabled: boolean, queryId?: string) {
     enabled: enabled && (queryId !== undefined ? Boolean(queryId) : true),
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return !status || status === 'processing' ? 1500 : false;
+      return !status || status === 'processing' ? 3500 : false;
     },
     gcTime: 0,
     staleTime: 0,
