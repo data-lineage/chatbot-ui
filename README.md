@@ -2,6 +2,15 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+# config
+
+create .env.local in the root of the directory and these variables
+
+```
+NEXT_PUBLIC_API_BASE_URL= your_backend_server_url
+NEXT_PUBLIC_ACCESS_TOKEN= your_token_to_access_anansi
+```
+
 First, run the development server:
 
 ```bash
